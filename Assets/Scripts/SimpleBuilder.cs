@@ -15,6 +15,16 @@ public class SimpleBuilder : MonoBehaviour
         this.cursor.transform.localScale = new Vector3(10, 1, 10);
         this.cursor.GetComponent<Renderer>().material.color = Color.green;
     }
+    private void Update() {
+#if UNITY_EDITOR
+        if (Input.GetKeyDown(KeyCode.UpArrow)) { y++; }
+        if (Input.GetKeyDown(KeyCode.DownArrow)) { y--; }
+        if (Input.GetKeyDown(KeyCode.RightArrow)) { x++; }
+        if (Input.GetKeyDown(KeyCode.LeftArrow)) { x--; }
+
+        if (Input.GetKeyDown(KeyCode.Space)) { BuildSomething(); }
+#endif
+    }
     private void FixedUpdate() {
         updateCursor();
     }
