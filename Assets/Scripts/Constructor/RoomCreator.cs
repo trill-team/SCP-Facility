@@ -17,7 +17,6 @@ public class RoomCreator : MonoBehaviour
     public Material transparentMaterial;
     public Material floorMaterial;
     
-
     public const int BLENDER_CONVERTATION = 100;
 
     private void Awake() {
@@ -43,6 +42,4 @@ public class RoomCreator : MonoBehaviour
 
         return newRoom;
     }
-
-    
 }

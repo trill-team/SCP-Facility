@@ -57,8 +57,12 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\CameraMoving.cs" />
     <Compile Include="Assets\Scripts\Constructor\Parts\Room.cs" />
+    <Compile Include="Assets\Scripts\Constructor\Parts\RoomComponent.cs" />
+    <Compile Include="Assets\Scripts\Constructor\Parts\RoomComponentManager.cs" />
+    <Compile Include="Assets\Scripts\Constructor\Parts\Wall.cs" />
     <Compile Include="Assets\Scripts\Constructor\RoomCreator.cs" />
     <Compile Include="Assets\Scripts\Constructor\RoomManager.cs" />
+    <Compile Include="Assets\Scripts\JSONWriter\JSONRoom.cs" />
     <Compile Include="Assets\Scripts\SimpleBuilder.cs" />
     <Compile Include="Assets\Scripts\Wallbehaviour.cs" />
     <Reference Include="Unity.TextMeshPro.Editor">

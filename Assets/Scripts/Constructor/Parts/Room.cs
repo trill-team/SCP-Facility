@@ -1,6 +1,9 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
 
-public class Room : ScriptableObject {
+using UnityEngine;
+
+[System.Serializable]
+public class Room : ScriptableObject, System.ICloneable {
     public enum WALL_SIDE {
         NONE = -1,
 
@@ -9,6 +12,17 @@ public class Room : ScriptableObject {
         LEFT = 3,
         RIGHT = 1
     };
+    public enum WALL_PART {
+        CENTER = 1,
+        LEFT = 0,
+        RIGHT = 2
+    };
+    public enum HEIGHT {
+        LANDED = 0,
+        CENTER = 1/2,
+        UNDER_CEILING = 2
+    };
+
     public const float WALL_SIZE = .4f;
     public const float WALL_HEIGHT = 1f;
 
@@ -16,34 +30,46 @@ public class Room : ScriptableObject {
     public const float DEF_Y_ROTATION = 0;
     public const float DEF_Z_ROTATION = 0;
     public const float RECT_Y_ROTATION = 90;
+
     public const float CORNER_SIZE = 1;
     public const float CORNER_AMOUNT = 2;
+    public const int COMPONENT_MARGIN = 2;
+    public const int DOOR_WALL_SIZE = 4;
 
     public const float CENTER_OF_MODEL = 0.5f;
     public const int FLIP_MODEL = -1;
 
+    //public Wall[] wall = new Wall[4];
     public GameObject[] wall = new GameObject[4];
     public GameObject[] corner = new GameObject[4];
     public GameObject doorWall;
     public GameObject floor;
     public GameObject ambientLight;
 
+    public List<RoomComponent> components = new List<RoomComponent>();
+
     public Vector2Int position;
     public Vector2Int scale;
 
     public static int CornerAffects { get { return (int)(CORNER_SIZE * CORNER_AMOUNT); } private set { } }
+    public int s_id = 0;
+    private static int id = 0;
 
     //public List<RoomComponents> components;
 
     public void Destroy() {
         for (int i = 0; i < this.wall.Length; i++) {
             Destroy(this.wall[i]);
+            Destroy(this.corner[i]);
         }
         Destroy(this.floor);
         Destroy(ambientLight);
     }
 
     public void InitLight() {
+        this.s_id = id++;
+
+        Debug.Log((float)HEIGHT.CENTER);
     }
 
     public void InitWalls(WALL_SIDE[] transparentSides, WALL_SIDE[] toDeleteSides)
@@ -116,7 +142,27 @@ public class Room : ScriptableObject {
         this.InitWalls(new WALL_SIDE[] { toHide }, new WALL_SIDE[] { toDestroy });
     }
 
-    public void AddDoor() {}
+    public void AddDoor(WALL_SIDE[] toWhere) {
+        InitWalls(new WALL_SIDE[] { WALL_SIDE.NONE }, toWhere);
+
+        for (int i = 0; i < wall.Length; i++) {
+            switch (i)
+            {
+                case (int)Room.WALL_SIDE.LEFT:
+                    wall[i].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, RECT_Y_ROTATION, DEF_Z_ROTATION);
+                    break;
+                case (int)Room.WALL_SIDE.RIGHT:
+                    wall[i].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, RECT_Y_ROTATION, DEF_Z_ROTATION);
+                    break;
+                case (int)Room.WALL_SIDE.FORWARD:
+                    wall[i].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, DEF_Y_ROTATION, DEF_Z_ROTATION);
+                    break;
+                default:
+                    wall[i].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, DEF_Y_ROTATION, DEF_Z_ROTATION);
+                    break;
+            }
+        }
+    }
     public void RemoveDoor() {
     }
 
@@ -162,4 +208,30 @@ public class Room : ScriptableObject {
             new WALL_SIDE[] { toDeleteSide }
         );
     }
+
+    public void AddComponent(RoomComponent component) {
+        components.Add(component);
+
+        if (component.isRoomPart) {
+            PlaceComponent(component);
+        }
+    }
+    private void PlaceComponent(RoomComponent component) {
+        RoomManager.Place(this, position);
+    }
+
+    public bool Equals(Room other)
+    {
+        return this.s_id == other.s_id;
+    }
+
+    public object Clone() {
+        Room newRoom = RoomCreator.Create(scale);
+
+        newRoom.position = this.position;
+        newRoom.components = this.components;
+        newRoom.s_id = this.s_id;
+
+        return newRoom;
+    } 
 }

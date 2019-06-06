@@ -4,6 +4,12 @@ using UnityEngine;
 
 public class SimpleBuilder : MonoBehaviour
 {
+    public string componentName = "ceilingLamp";
+
+    public GameObject licht;
+    public float rayLength = 1000;
+    public float lightHeight = 2;
+
     private const int INCREMENT = 10;
     private int x = 0;
     private int y = 0;
@@ -17,12 +23,22 @@ public class SimpleBuilder : MonoBehaviour
     }
     private void Update() {
 #if UNITY_EDITOR
-        if (Input.GetKeyDown(KeyCode.UpArrow)) { y++; }
-        if (Input.GetKeyDown(KeyCode.DownArrow)) { y--; }
-        if (Input.GetKeyDown(KeyCode.RightArrow)) { x++; }
-        if (Input.GetKeyDown(KeyCode.LeftArrow)) { x--; }
+        if (Input.GetKeyDown(KeyCode.UpArrow)) { y += INCREMENT ; }
+        if (Input.GetKeyDown(KeyCode.DownArrow)) { y -= INCREMENT; }
+        if (Input.GetKeyDown(KeyCode.RightArrow)) { x += INCREMENT; }
+        if (Input.GetKeyDown(KeyCode.LeftArrow)) { x -= INCREMENT; }
 
         if (Input.GetKeyDown(KeyCode.Space)) { BuildSomething(); }
+
+        if (Input.GetKeyDown(KeyCode.Y)) {
+            Room getRoom = RoomManager.GetRoomAt(new Vector2Int(x, y));
+            if (getRoom != null)
+                getRoom.AddComponent(RoomComponentManager.Find(this.componentName));
+        }
+
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+        this.licht.transform.position = ray.GetPoint(rayLength);
 #endif
     }
     private void FixedUpdate() {
@@ -33,7 +49,7 @@ public class SimpleBuilder : MonoBehaviour
     {
         RoomManager.Place(
             RoomCreator.Create(new Vector2Int(10, 10)),
-            new Vector2Int(INCREMENT * x, INCREMENT * y)
+            new Vector2Int(x, y)
         );
     }
 
@@ -45,6 +61,6 @@ public class SimpleBuilder : MonoBehaviour
     }
     
     private void updateCursor() {
-        this.cursor.transform.position = new Vector3(x * INCREMENT + 5, 0, y * INCREMENT + 5);
+        this.cursor.transform.position = RoomManager.GetLocation(new Vector2Int(x + 5, y + 5));
     }
 }

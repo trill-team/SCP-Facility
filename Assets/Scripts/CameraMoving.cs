@@ -13,12 +13,19 @@ public class CameraMoving : MonoBehaviour
     private float oldTouchFrame;
     private float touchFrame;
 
+#if UNITY_EDITOR
+    private Vector3 memorizedScrollDirection;
+#endif
 
     private void Start() {
         this.prevMousePos = Vector2.zero;
         this.currentMousePos = Vector2.zero;
         this.oldTouchFrame = 0;
-        this.touchFrame = 0; 
+        this.touchFrame = 0;
+
+        memorizedScrollDirection = this.gameObject.transform.forward;
+
+        this.gameObject.transform.position += RoomManager.GetLocation(new Vector2Int(10, -10));
     }
     private void Update() {
 #if UNITY_ANDROID
@@ -44,9 +51,21 @@ public class CameraMoving : MonoBehaviour
             this.prevMousePos = Vector2.zero;
         }
 
-        this.transform.Translate(this.transform.forward * GetScrollDelta());
+        if (GetScrollDelta() > 0) {
+            memorizedScrollDirection = GetScrollDirection();
+        }
+
+        this.transform.Translate(memorizedScrollDirection * GetScrollDelta());
     }
 
+    private Vector3 GetScrollDirection() {
+#if UNITY_EDITOR
+        return Camera.main.ScreenPointToRay(Input.mousePosition).direction;
+#endif
+#if UNITY_ANDROID
+        return this.transform.forward;
+#endif
+    }
     private float GetScrollDelta() {
 #if UNITY_EDITOR
         return Input.mouseScrollDelta.y;
