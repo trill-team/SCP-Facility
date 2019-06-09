@@ -25,7 +25,7 @@ public class CameraMoving : MonoBehaviour
 
         memorizedScrollDirection = this.gameObject.transform.forward;
 
-        this.gameObject.transform.position += RoomManager.GetLocation(new Vector2Int(10, -10));
+        this.gameObject.transform.position += RoomManager.GetLocation(new Vector2Int(0, 0));
     }
     private void Update() {
 #if UNITY_ANDROID
@@ -52,8 +52,11 @@ public class CameraMoving : MonoBehaviour
         }
 
         if (GetScrollDelta() > 0) {
-            memorizedScrollDirection = GetScrollDirection();
+            //memorizedScrollDirection = GetScrollDirection();
+            
         }
+
+        memorizedScrollDirection = 1 * this.gameObject.transform.up;
 
         this.transform.Translate(memorizedScrollDirection * GetScrollDelta());
     }

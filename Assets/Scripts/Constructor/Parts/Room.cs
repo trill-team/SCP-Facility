@@ -4,6 +4,14 @@ using UnityEngine;
 
 [System.Serializable]
 public class Room : ScriptableObject, System.ICloneable {
+    public enum TYPE {
+        EMPTY,
+        COMMON,
+        RESEARCH,
+        SEPARATOR,
+
+        CONTAINMENT
+    }
     public enum WALL_SIDE {
         NONE = -1,
 
@@ -40,7 +48,7 @@ public class Room : ScriptableObject, System.ICloneable {
     public const int FLIP_MODEL = -1;
 
     //public Wall[] wall = new Wall[4];
-    public GameObject[] wall = new GameObject[4];
+    public Wall[] wall = new Wall[4];
     public GameObject[] corner = new GameObject[4];
     public GameObject doorWall;
     public GameObject floor;
@@ -50,16 +58,22 @@ public class Room : ScriptableObject, System.ICloneable {
 
     public Vector2Int position;
     public Vector2Int scale;
+    public TYPE type;
 
     public static int CornerAffects { get { return (int)(CORNER_SIZE * CORNER_AMOUNT); } private set { } }
     public int s_id = 0;
     private static int id = 0;
 
+    private List<WALL_SIDE> transparentWalls = new List<WALL_SIDE>();
+    private List<WALL_SIDE> destroyedWalls = new List<WALL_SIDE>();
+
     //public List<RoomComponents> components;
 
     public void Destroy() {
         for (int i = 0; i < this.wall.Length; i++) {
-            Destroy(this.wall[i]);
+            for (int j = 0; j < this.wall[i].Length; j++) {
+                Destroy(this.wall[i][j]);
+            }
             Destroy(this.corner[i]);
         }
         Destroy(this.floor);
@@ -74,56 +88,68 @@ public class Room : ScriptableObject, System.ICloneable {
 
     public void InitWalls(WALL_SIDE[] transparentSides, WALL_SIDE[] toDeleteSides)
     {
+        this.transparentWalls.AddRange(transparentSides);
+        this.destroyedWalls.AddRange(toDeleteSides);
+
         Room newRoom = this;
         Vector2Int scale = newRoom.scale;
 
         Vector2Int flip = Vector2Int.one;
 
-        for (int i = 0; i < newRoom.wall.Length; i++)
-        {
-            flip = Vector2Int.one;
+        for (int i = 0; i < newRoom.wall.Length; i++) {
+            for (int j = 0; j < newRoom.wall[i].Length; j++) {
+                flip = Vector2Int.one;
 
-            GameObject currentWall = newRoom.wall[i];
+                GameObject currentWall = newRoom.wall[i][j];
 
-            if (currentWall == null) continue;
+                if (currentWall == null) continue;
 
-            switch (i)
-            {
-                case (int)Room.WALL_SIDE.LEFT:
-                    newRoom.wall[i].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, RECT_Y_ROTATION, DEF_Z_ROTATION);
-                    flip = new Vector2Int(1, FLIP_MODEL);
-                    break;
-                case (int)Room.WALL_SIDE.RIGHT:
-                    newRoom.wall[i].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, RECT_Y_ROTATION, DEF_Z_ROTATION);
-                    break;
-                case (int)Room.WALL_SIDE.FORWARD:
-                    newRoom.wall[i].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, DEF_Y_ROTATION, DEF_Z_ROTATION);
-                    flip = new Vector2Int(1, FLIP_MODEL);
-                    break;
-                default:
-                    newRoom.wall[i].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, DEF_Y_ROTATION, DEF_Z_ROTATION);
-                    break;
-            }
-            newRoom.wall[i].transform.localScale = new Vector3((scale.y - CornerAffects) * CENTER_OF_MODEL * flip.x, WALL_SIZE * flip.y, WALL_HEIGHT);
-            newRoom.wall[i].GetComponent<Renderer>().material = RoomCreator.Instance.mainMaterial;
-            newRoom.corner[i].GetComponent<Renderer>().material = RoomCreator.Instance.mainMaterial;
-            newRoom.corner[i].transform.localScale = Vector3.one;
+                float xScale = newRoom.wall[i].Length > 1 ? scale.y / 3 : scale.y;
 
-            for (int z = 0; z < transparentSides.Length; z++)
-            {
-                if (i == (int)transparentSides[z])
+                switch (i)
                 {
-                    newRoom.wall[i].GetComponent<Renderer>().material = RoomCreator.Instance.transparentMaterial;
-                    newRoom.corner[i].GetComponent<Renderer>().material = RoomCreator.Instance.transparentMaterial;
+                    case (int)Room.WALL_SIDE.LEFT:
+                        newRoom.wall[i][j].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, RECT_Y_ROTATION, DEF_Z_ROTATION);
+                        flip = new Vector2Int(1, FLIP_MODEL);
+                        break;
+                    case (int)Room.WALL_SIDE.RIGHT:
+                        newRoom.wall[i][j].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, RECT_Y_ROTATION, DEF_Z_ROTATION);
+                        break;
+                    case (int)Room.WALL_SIDE.FORWARD:
+                        newRoom.wall[i][j].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, DEF_Y_ROTATION, DEF_Z_ROTATION);
+                        flip = new Vector2Int(1, FLIP_MODEL);
+                        // COSTIL
+                        xScale = newRoom.wall[i].Length > 1 ? scale.x / 3 : scale.x;
+                        break;
+                    case (int)Room.WALL_SIDE.BACKWARD:
+                        xScale = newRoom.wall[i].Length > 1 ? scale.x / 3 : scale.x;
+                        break;
+                    default:
+                        newRoom.wall[i][j].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, DEF_Y_ROTATION, DEF_Z_ROTATION);
+                        break;
                 }
-            }
-            if (toDeleteSides.Length <= 0) continue;
-            for (int z = 0; z < toDeleteSides.Length; z++)
-            {
-                if (i == (int)toDeleteSides[z])
+                newRoom.wall[i][j].transform.localScale = new Vector3((xScale - CornerAffects) * CENTER_OF_MODEL * flip.x, WALL_SIZE * flip.y, WALL_HEIGHT);
+                newRoom.wall[i][j].GetComponent<Renderer>().material = RoomCreator.Instance.mainMaterial;
+
+                newRoom.corner[i].GetComponent<Renderer>().material = RoomCreator.Instance.mainMaterial;
+                newRoom.corner[i].transform.localScale = Vector3.one;
+
+                for (int z = 0; z < transparentSides.Length; z++)
                 {
-                    newRoom.wall[i].SetActive(false);
-                    newRoom.corner[i].SetActive(false);
+                    if (i == (int)transparentSides[z])
+                    {
+                        newRoom.wall[i][j].GetComponent<Renderer>().material = RoomCreator.Instance.transparentMaterial;
+                        newRoom.corner[i].GetComponent<Renderer>().material = RoomCreator.Instance.transparentMaterial;
+                    }
+                }
+                if (toDeleteSides.Length <= 0) continue;
+                for (int z = 0; z < toDeleteSides.Length; z++)
+                {
+                    if (i == (int)toDeleteSides[z])
+                    {
+                        newRoom.wall[i][j].SetActive(false);
+                        newRoom.corner[i].SetActive(false);
+                    }
                 }
             }
         }
@@ -137,31 +163,18 @@ public class Room : ScriptableObject, System.ICloneable {
     public void InitWalls() {
         this.InitWalls(new WALL_SIDE[] { WALL_SIDE.FORWARD, WALL_SIDE.RIGHT });
     }
+    private void InitWalls(int nul) {
+        this.InitWalls(this.transparentWalls.ToArray(), this.destroyedWalls.ToArray());
+    }
 
     public void InitWalls(WALL_SIDE toHide, WALL_SIDE toDestroy) {
         this.InitWalls(new WALL_SIDE[] { toHide }, new WALL_SIDE[] { toDestroy });
     }
+    public void AddDoor(WALL_SIDE toAddDoor) {
+        wall[(int)toAddDoor][1] = RoomCreator.Instance.doorWall;
+        wall[(int)toAddDoor][2] = wall[(int)toAddDoor][0];
 
-    public void AddDoor(WALL_SIDE[] toWhere) {
-        InitWalls(new WALL_SIDE[] { WALL_SIDE.NONE }, toWhere);
-
-        for (int i = 0; i < wall.Length; i++) {
-            switch (i)
-            {
-                case (int)Room.WALL_SIDE.LEFT:
-                    wall[i].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, RECT_Y_ROTATION, DEF_Z_ROTATION);
-                    break;
-                case (int)Room.WALL_SIDE.RIGHT:
-                    wall[i].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, RECT_Y_ROTATION, DEF_Z_ROTATION);
-                    break;
-                case (int)Room.WALL_SIDE.FORWARD:
-                    wall[i].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, DEF_Y_ROTATION, DEF_Z_ROTATION);
-                    break;
-                default:
-                    wall[i].transform.rotation = Quaternion.Euler(DEF_X_ROTATION, DEF_Y_ROTATION, DEF_Z_ROTATION);
-                    break;
-            }
-        }
+        InitWalls(18);
     }
     public void RemoveDoor() {
     }
@@ -173,28 +186,31 @@ public class Room : ScriptableObject, System.ICloneable {
 
         for (int i = 0; i < newRoom.wall.Length; i++)
         {
-            if (newRoom.wall[i] == null) continue;
-
-            for (int z = 0; z < transparentSides.Length; z++)
+            for (int j = 0; j < newRoom.wall[i].Length; j++)
             {
-                if (i == (int)transparentSides[z])
+                if (newRoom.wall[i] == null) continue;
+
+                for (int z = 0; z < transparentSides.Length; z++)
                 {
-                    newRoom.wall[i].GetComponent<Renderer>().material = RoomCreator.Instance.transparentMaterial;
-                }
-                if (toVisible.Length <= 0) continue;
-                if (i == (int)toVisible[z < toVisible.Length ? z : 0])
-                {
-                    newRoom.wall[i].GetComponent<Renderer>().material = RoomCreator.Instance.mainMaterial;
-                }
-                if (toDeleteSides.Length <= 0) continue;
-                if (i == (int)toDeleteSides[z < toDeleteSides.Length ? z : 0])
-                {
-                    newRoom.wall[i].SetActive(false);
-                }
-                if (toShow.Length <= 0) continue;
-                if (i == (int)toShow[z < toShow.Length ? z : 0])
-                {
-                    newRoom.wall[i].SetActive(true);
+                    if (i == (int)transparentSides[z])
+                    {
+                        newRoom.wall[i][j].GetComponent<Renderer>().material = RoomCreator.Instance.transparentMaterial;
+                    }
+                    if (toVisible.Length <= 0) continue;
+                    if (i == (int)toVisible[z < toVisible.Length ? z : 0])
+                    {
+                        newRoom.wall[i][j].GetComponent<Renderer>().material = RoomCreator.Instance.mainMaterial;
+                    }
+                    if (toDeleteSides.Length <= 0) continue;
+                    if (i == (int)toDeleteSides[z < toDeleteSides.Length ? z : 0])
+                    {
+                        newRoom.wall[i][j].SetActive(false);
+                    }
+                    if (toShow.Length <= 0) continue;
+                    if (i == (int)toShow[z < toShow.Length ? z : 0])
+                    {
+                        newRoom.wall[i][j].SetActive(true);
+                    }
                 }
             }
         }
@@ -226,7 +242,8 @@ public class Room : ScriptableObject, System.ICloneable {
     }
 
     public object Clone() {
-        Room newRoom = RoomCreator.Create(scale);
+        Room newRoom = RoomCreator.Create(this, scale);
+
 
         newRoom.position = this.position;
         newRoom.components = this.components;

@@ -9,6 +9,7 @@ public class SimpleBuilder : MonoBehaviour
     public GameObject licht;
     public float rayLength = 1000;
     public float lightHeight = 2;
+    public Vector2Int roomSize = new Vector2Int(10, 10);
 
     private const int INCREMENT = 10;
     private int x = 0;
@@ -23,7 +24,7 @@ public class SimpleBuilder : MonoBehaviour
     }
     private void Update() {
 #if UNITY_EDITOR
-        if (Input.GetKeyDown(KeyCode.UpArrow)) { y += INCREMENT ; }
+        if (Input.GetKeyDown(KeyCode.UpArrow)) { y += INCREMENT; }
         if (Input.GetKeyDown(KeyCode.DownArrow)) { y -= INCREMENT; }
         if (Input.GetKeyDown(KeyCode.RightArrow)) { x += INCREMENT; }
         if (Input.GetKeyDown(KeyCode.LeftArrow)) { x -= INCREMENT; }
@@ -48,7 +49,7 @@ public class SimpleBuilder : MonoBehaviour
     public void BuildSomething()
     {
         RoomManager.Place(
-            RoomCreator.Create(new Vector2Int(10, 10)),
+            RoomCreator.Create(Room.TYPE.EMPTY),
             new Vector2Int(x, y)
         );
     }

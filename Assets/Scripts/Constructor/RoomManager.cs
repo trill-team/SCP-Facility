@@ -61,11 +61,12 @@ public class RoomManager : MonoBehaviour
 
         if (Instance.cells[position.x + 1, position.y + 1] != null)
         {
-            if (Instance.cells[position.x + 1, position.y + 1].Equals(roomToPlace)) {
+            if (Instance.cells[position.x, position.y].Equals(roomToPlace)) {
                 roomToPlace = (Room)roomToPlace.Clone();
                 DestroyRoom(Instance.cells[position.x, position.y]);
-            } else if (Instance.cells[position.x + roomToPlace.scale.x - 1, position.y + roomToPlace.scale.y - 1] != null
-                || Instance.cells[position.x + roomToPlace.scale.x - 1, position.y] != null || Instance.cells[position.x, position.y + roomToPlace.scale.y - 1] != null)
+            } else if (Instance.cells[position.x + roomToPlace.scale.x, position.y + roomToPlace.scale.y] != null
+                || Instance.cells[position.x + roomToPlace.scale.x, position.y] != null || Instance.cells[position.x, position.y + roomToPlace.scale.y] != null
+                || Instance.cells[position.x, position.y] != null)
             {
                 roomToPlace.Destroy();
                 return;
@@ -100,12 +101,14 @@ public class RoomManager : MonoBehaviour
         List<Room.WALL_SIDE> toHide = new List<Room.WALL_SIDE>();
         List<Room.WALL_SIDE> toDestroy = new List<Room.WALL_SIDE>();
 
-        toHide.AddRange(new Room.WALL_SIDE[] { Room.WALL_SIDE.FORWARD, Room.WALL_SIDE.RIGHT });
+        toHide.AddRange(new Room.WALL_SIDE[] { Room.WALL_SIDE.NONE });
         toDestroy.Add(Room.WALL_SIDE.NONE);
 
         if (right) {            
             Instance.cells[position.x + roomToPlace.scale.x + 1, position.y + roomToPlace.scale.y - 1].
                 UpdateWalls(Room.WALL_SIDE.NONE, Room.WALL_SIDE.LEFT);
+            //toHide.Add(Room.WALL_SIDE.RIGHT);
+            roomToPlace.AddDoor(Room.WALL_SIDE.RIGHT);
         }
         if (top)
         {
@@ -113,10 +116,12 @@ public class RoomManager : MonoBehaviour
         }
         if (left) {
             toDestroy.Add(Room.WALL_SIDE.LEFT);
+            Instance.cells[position.x - 1, position.y + 1].AddDoor(Room.WALL_SIDE.RIGHT);
         }
         if (bottom)
         {
-            toHide.Add(Room.WALL_SIDE.FORWARD);
+            //toHide.Add(Room.WALL_SIDE.FORWARD);
+            roomToPlace.AddDoor(Room.WALL_SIDE.FORWARD);
             Instance.cells[position.x, position.y - 1].UpdateWalls(Room.WALL_SIDE.BACKWARD, Room.WALL_SIDE.BACKWARD);
         }
 
@@ -130,19 +135,12 @@ public class RoomManager : MonoBehaviour
         Instance.allRooms.Add(roomToPlace);
     }
     private static void PlaceRoom(Room roomToPlace, Vector2Int position, Vector2 scale) {
-        PlaceObject(roomToPlace.wall[(int)Room.WALL_SIDE.FORWARD], position + new Vector2Int((roomToPlace.scale.x ) / 2, 0));
-        PlaceObject(roomToPlace.wall[(int)Room.WALL_SIDE.LEFT], position + new Vector2Int(0, (roomToPlace.scale.y ) / 2));
-        PlaceObject(roomToPlace.wall[(int)Room.WALL_SIDE.BACKWARD], position + new Vector2Int((roomToPlace.scale.x) / 2, roomToPlace.scale.y));
-        PlaceObject(roomToPlace.wall[(int)Room.WALL_SIDE.RIGHT], position + new Vector2Int(roomToPlace.scale.x, (roomToPlace.scale.y) / 2));
+        PlaceWall(roomToPlace, roomToPlace.wall, position);
 
         PlaceObject(roomToPlace.corner[(int)Room.WALL_SIDE.BACKWARD], position + new Vector2Int(0, roomToPlace.scale.y));
         PlaceObject(roomToPlace.corner[(int)Room.WALL_SIDE.LEFT], position + new Vector2Int(roomToPlace.scale.x, roomToPlace.scale.y));
         PlaceObject(roomToPlace.corner[(int)Room.WALL_SIDE.FORWARD], position + new Vector2Int(roomToPlace.scale.x, 0));
         PlaceObject(roomToPlace.corner[(int)Room.WALL_SIDE.RIGHT], position + new Vector2Int(0, 0));
-
-        for (int i = 0; i < roomToPlace.wall.Length; i++) {
-            roomToPlace.wall[i].transform.position += Vector3.up * Room.WALL_HEIGHT / 2;
-        }
 
         PlaceObject(roomToPlace.floor, position + new Vector2Int(roomToPlace.scale.x, roomToPlace.scale.y));
         PlaceObject(roomToPlace.ambientLight, position + new Vector2Int(roomToPlace.scale.x / 2, roomToPlace.scale.y / 2));
@@ -211,6 +209,27 @@ public class RoomManager : MonoBehaviour
 
         PlaceObject(component.geometry, itsPosition);
     }
+    private static void PlaceWall(Room roomToPlace, Wall[] walls, Vector2Int position) {
+        for (int i = 0; i < roomToPlace.wall.Length; i++) {
+            for (int j = 0; j < roomToPlace.wall[i].Length; j++) {
+                switch (i) {
+                    case (int)Room.WALL_SIDE.FORWARD:
+                        PlaceObject(roomToPlace.wall[i][j], position + new Vector2Int((roomToPlace.scale.x) / 2, (int)roomToPlace.wall[i][j].transform.localScale.y * j));
+                        break;
+                    case (int)Room.WALL_SIDE.LEFT:
+                        PlaceObject(roomToPlace.wall[i][j], position + new Vector2Int((int)roomToPlace.wall[i][j].transform.localScale.x * j, (roomToPlace.scale.y) / 2));
+                        break;
+                    case (int)Room.WALL_SIDE.BACKWARD:
+                        PlaceObject(roomToPlace.wall[i][j], position + new Vector2Int((int)roomToPlace.wall[i][j].transform.localScale.x * j + roomToPlace.scale.x / 2, roomToPlace.scale.y));
+                        break;
+                    case (int)Room.WALL_SIDE.RIGHT:
+                        PlaceObject(roomToPlace.wall[i][j], position + new Vector2Int(roomToPlace.scale.x, (int)roomToPlace.wall[i][j].transform.localScale.y * j + roomToPlace.scale.y / 2));
+                        break;
+                }
+                roomToPlace.wall[i][j].transform.position += Vector3.up * Room.WALL_HEIGHT / 2;
+            }
+        }
+    }
     private static void PlaceObject(GameObject toPlace, Vector2Int position, Vector3Int scale) {
         if (toPlace != null) {
             toPlace.transform.position = new Vector3(position.x, 0, position.y);
@@ -222,13 +241,18 @@ public class RoomManager : MonoBehaviour
             toPlace.transform.position = new Vector3(position.x, 0, position.y);
     }
     private static void LocateRoom(Room room) {
+        Vector2Int position = GetPosition(room.position);
+
         for (int i = 0; i < room.scale.x; i++)
         {
             for (int j = 0; j < room.scale.y; j++)
             {
-                Instance.cells[room.position.x + i, room.position.y + j] = room;
+                Instance.cells[position.x + i, position.y + j] = room;
             }
         }
+    }
+    public static void AddDoor(Room roomToAddDoor, Room.WALL_SIDE side) {
+        roomToAddDoor.AddDoor(side);
     }
     private static void DestroyRoom(Room room) {
         // look at position

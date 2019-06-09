@@ -6,6 +6,8 @@ public class RoomCreator : MonoBehaviour
 {
     public static RoomCreator Instance;
 
+    public List<RoomConfig> roomConfigurations = new List<RoomConfig>();
+
     public GameObject wall;
     public GameObject corner;
     public GameObject floor;
@@ -21,15 +23,31 @@ public class RoomCreator : MonoBehaviour
 
     private void Awake() {
         Instance = this;
+
+        for (int i = 0; i < this.roomConfigurations.Count; i++) {
+            for (int j = 0; j < this.roomConfigurations[i].walls.Length; j++) {
+                if (this.roomConfigurations[i].walls[j][0] == null) {
+                    this.roomConfigurations[i].walls[j][0] = this.wall;
+                }
+            }
+        }
     }
 
-    public static Room Create(Vector2Int scale) {
-        Room newRoom = ScriptableObject.CreateInstance(typeof(Room)) as Room;
+    public static Room Create(Room.TYPE typeOfRoom) {
+        List<RoomConfig> workingRooms = GetRoomsOfType(typeOfRoom);
+        Room newRoom = ConfigToRoom(workingRooms[Random.Range(0, workingRooms.Count - 1)]);
+
+        return Create(newRoom, newRoom.scale);
+    } 
+    public static Room Create(Room roomToCreate, Vector2Int scale) {
+        Room newRoom = roomToCreate;
 
         newRoom.scale = scale;
 
         for (int i = 0; i < newRoom.wall.Length; i++) {
-            newRoom.wall[i] = Instantiate(Instance.wall);
+            for (int j = 0; j < newRoom.wall[i].Length; j++) {
+                newRoom.wall[i][j] = Instantiate(Instance.wall);
+            }
         }
 
         newRoom.floor = Instantiate(Instance.floor);
@@ -41,5 +59,18 @@ public class RoomCreator : MonoBehaviour
         }
 
         return newRoom;
+    }
+
+    private static Room ConfigToRoom(RoomConfig roomConfig) {
+        Room newRoom = ScriptableObject.CreateInstance<Room>();
+
+        newRoom.scale = roomConfig.scale;
+        newRoom.wall = roomConfig.walls;
+        newRoom.type = roomConfig.roomType;
+
+        return newRoom;
+    }
+    private static List<RoomConfig> GetRoomsOfType(Room.TYPE type) {
+        return Instance.roomConfigurations.FindAll(x => x.roomType == type);
     }
 }
